@@ -5,6 +5,9 @@ on:
     branches: [main]
     tags: ['v*']
   pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,12 +17,12 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - name: Installa le dipendenze
@@ -45,8 +48,8 @@ jobs:
     needs: test
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -54,7 +57,7 @@ jobs:
         run: npm ci
       - name: Crea portatile e installer
         run: npm run dist:all
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Spunta-Windows
           path: |
@@ -63,14 +66,15 @@ jobs:
 
   release:
     name: Pubblica la Release
-    if: startsWith(github.ref, 'refs/tags/v')
+    # a published release (created from the GitHub page) or a pushed v* tag
+    if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v')
     needs: windows
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           name: Spunta-Windows
           path: dist
@@ -86,8 +90,9 @@ jobs:
             echo '## Novità'
             awk -v v="## $ver" '$0==v{f=1;next} /^## /{f=0} f' CHANGELOG.md
           } > notes.md
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
+          tag_name: ${{ github.ref_name }}
           name: Spunta ${{ github.ref_name }}
           body_path: notes.md
           files: dist/*.exe
