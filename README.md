@@ -3,7 +3,7 @@
 > [!WARNING]
 > **Al primo avvio Windows mostra l'avviso "PC protetto".** Succede perché Spunta non ha una firma digitale, un certificato a pagamento che le piccole app gratuite di solito non hanno: non significa che contenga virus. Per avviarla clicca **Ulteriori informazioni**, poi **Esegui comunque**. Il codice è tutto qui, pubblico e verificabile, e i file da scaricare vengono creati direttamente da GitHub a partire da questo codice.
 
-App per Windows in stile Todoist che usa **le attività del tuo Nextcloud**. Le stesse liste le vedi sul telefono con [Tasks.org](https://tasks.org) e [DAVx⁵](https://www.davx5.com): scrivi un'attività sul PC, la ritrovi su Android, e viceversa.
+App per Windows e Linux in stile Todoist che usa **le attività del tuo Nextcloud**. Le stesse liste le vedi sul telefono con [Tasks.org](https://tasks.org) e [DAVx⁵](https://www.davx5.com): scrivi un'attività sul PC, la ritrovi su Android, e viceversa.
 
 Gratuita, senza abbonamenti, senza limiti. I dati restano sul tuo server.
 
@@ -16,25 +16,37 @@ Gratuita, senza abbonamenti, senza limiti. I dati restano sul tuo server.
 - **Progetti, priorità, sottoattività, note, etichette.**
 - **Attività ricorrenti**: "ogni lunedì", "ogni giorno lavorativo", "ogni 2 settimane"…
 - **Attività senza data**, per le cose da fare "prima o poi".
-- **Notifiche di Windows** all'ora di scadenza e riepilogo del mattino.
+- **Notifiche del sistema** all'ora di scadenza e riepilogo del mattino.
 - **Funziona anche offline**: le modifiche partono quando torna la connessione.
-- **Tema chiaro e scuro**, che segue Windows.
+- **Tema chiaro e scuro**, che segue quello del sistema.
 
 ![Un progetto con sottoattività e il pannello dei dettagli](docs/progetto.png)
 
 ## Di cosa hai bisogno
 
-- Un PC con **Windows 10 o 11** (64 bit).
+- Un PC con **Windows 10 o 11** oppure **Linux** (64 bit).
 - Un **Nextcloud** con le attività (CalDAV): il tuo, oppure uno presso un fornitore. Dovrebbe funzionare con qualunque server CalDAV, ma è stato provato con Nextcloud.
 
 ## Installazione
 
-Scarica l'ultima versione dalla pagina [Releases](../../releases). Ci sono due file:
+Scarica l'ultima versione dalla pagina [Releases](../../releases).
+
+### Windows
 
 - **Spunta-Portatile-x.y.z.exe**: un solo file, non installa nulla. Comodo per provarla.
 - **Spunta-Setup-x.y.z.exe**: installer classico, con icona nel menu Start e disinstallazione da Impostazioni.
 
 Al primo avvio ricordati dell'avviso **"PC protetto"** descritto in cima a questa pagina: clicca **Ulteriori informazioni**, poi **Esegui comunque**.
+
+### Linux
+
+- **Spunta-x.y.z-x86_64.AppImage**: un solo file che funziona su quasi tutte le distribuzioni. Rendilo eseguibile (tasto destro → Proprietà → "Consenti l'esecuzione", oppure `chmod +x Spunta-*.AppImage`) e avvialo con un doppio clic.
+- **spunta_x.y.z_amd64.deb**: pacchetto per Ubuntu, Linux Mint e Debian. Si installa con un doppio clic o con `sudo apt install ./spunta_*.deb`, e compare nel menu delle applicazioni.
+
+Su Linux l'avviso "PC protetto" non c'è. Due cose da sapere:
+
+- L'icona vicino all'orologio, che tiene Spunta attiva a finestra chiusa, compare su KDE, Cinnamon, XFCE e MATE. Su **GNOME** (Ubuntu standard) serve l'estensione "AppIndicator", di solito già presente in Ubuntu. Se l'icona non c'è, riaprire Spunta dal menu riporta la finestra.
+- La scorciatoia `Ctrl+Alt+A` da qualunque programma funziona sulle sessioni X11; su Wayland il sistema potrebbe non permetterla.
 
 ### Collegamento a Nextcloud
 
@@ -86,12 +98,12 @@ Nelle viste Oggi e Prossimi, un'attività senza data va a oggi; se indichi un pr
 ## Privacy
 
 - Spunta parla solo con il **tuo** server. Nessuna statistica, nessun tracciamento, nessun servizio esterno.
-- La password per app è salvata cifrata con il sistema di protezione di Windows.
-- Le attività sono tenute anche in una copia locale (in `%APPDATA%\Spunta`) per funzionare offline.
+- La password per app è salvata cifrata: su Windows con il sistema di protezione di Windows, su Linux con il portachiavi del desktop (GNOME Portachiavi o KWallet), se presente.
+- Le attività sono tenute anche in una copia locale (in `%APPDATA%\Spunta` su Windows, `~/.config/Spunta` su Linux) per funzionare offline.
 
 ## Limiti noti
 
-- Provata solo su Windows. Il codice è multipiattaforma (Electron), ma per Mac e Linux non ci sono pacchetti.
+- Usata ogni giorno su Windows. Su Linux è provata su Ubuntu 24.04 (installazione, collegamento, attività, avvio automatico), ma non ancora in uso quotidiano su un PC desktop. Per Mac non ci sono pacchetti.
 - Non si possono riordinare le attività trascinandole.
 - Interfaccia solo in italiano.
 
@@ -112,7 +124,7 @@ python3 test/server.py   # in un altro terminale
 npm test
 ```
 
-Per creare i file per Windows: `npm run dist` (portatile) e `npm run dist:installer` (installer). Le Release su GitHub vengono create in automatico quando si pubblica un tag `v1.2.3`.
+Per creare i file: `npm run dist` (Windows portatile), `npm run dist:installer` (Windows installer), `npm run dist:linux` (AppImage e .deb). Le Release su GitHub vengono create in automatico quando si pubblica un tag `v1.2.3`.
 
 Struttura:
 

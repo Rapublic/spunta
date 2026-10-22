@@ -1,5 +1,9 @@
 # Novità
 
+## 1.0.4
+- Versione per Linux: AppImage (quasi tutte le distribuzioni) e pacchetto .deb (Ubuntu, Mint, Debian).
+- Su Linux l'avvio automatico usa il sistema standard delle sessioni desktop.
+
 ## 1.0.3
 - Un'attività scritta in Oggi con un progetto esplicito (`#Prima o poi`) resta senza data, invece di finire a oggi.
 - Se non c'è nessuna lista sul server, premendo Invio Spunta propone di crearne una e poi salva l'attività.

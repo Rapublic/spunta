@@ -64,11 +64,33 @@ jobs:
             dist/*.exe
           if-no-files-found: error
 
+  linux:
+    name: Compilazione Linux
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Installa le dipendenze
+        run: npm ci
+      - name: Crea AppImage e pacchetto .deb
+        run: npm run dist:linux
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Spunta-Linux
+          path: |
+            dist/*.AppImage
+            dist/*.deb
+          if-no-files-found: error
+
   release:
     name: Pubblica la Release
     # a published release (created from the GitHub page) or a pushed v* tag
     if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v')
-    needs: windows
+    needs: [windows, linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -76,7 +98,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
-          name: Spunta-Windows
+          pattern: Spunta-*
+          merge-multiple: true
           path: dist
       - name: Note di rilascio dal CHANGELOG
         run: |
@@ -85,7 +108,10 @@ jobs:
             echo '> [!WARNING]'
             echo '> **Al primo avvio Windows mostra "PC protetto"** perché Spunta non ha una firma digitale a pagamento. Clicca **Ulteriori informazioni**, poi **Esegui comunque**. I file sono creati direttamente da GitHub a partire dal codice pubblico.'
             echo
-            echo '**Quale file scaricare:** `Spunta-Portatile` è un solo file da avviare senza installare nulla; `Spunta-Setup` installa l'"'"'app con icona nel menu Start.'
+            echo '**Quale file scaricare**'
+            echo
+            echo '- **Windows:** `Spunta-Portatile` è un solo file da avviare senza installare nulla; `Spunta-Setup` installa l'"'"'app con icona nel menu Start.'
+            echo '- **Linux:** `Spunta-…-x86_64.AppImage` funziona su quasi tutte le distribuzioni (rendilo eseguibile e avvialo); `spunta_…_amd64.deb` si installa su Ubuntu, Mint e Debian.'
             echo
             echo '## Novità'
             awk -v v="## $ver" '$0==v{f=1;next} /^## /{f=0} f' CHANGELOG.md
@@ -95,4 +121,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Spunta ${{ github.ref_name }}
           body_path: notes.md
-          files: dist/*.exe
+          files: |
+            dist/*.exe
+            dist/*.AppImage
+            dist/*.deb

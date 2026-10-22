@@ -1,6 +1,6 @@
 {
   "name": "spunta",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "App Windows in stile Todoist per le attività di Nextcloud, compatibile con Tasks.org su Android. Nota: al primo avvio Windows mostra \"PC protetto\" perché l'app non ha firma digitale; clicca Ulteriori informazioni, poi Esegui comunque.",
   "main": "main.js",
   "scripts": {
@@ -10,7 +10,8 @@
     "dist:installer": "electron-builder --win nsis --x64 --publish never",
     "test:server": "python3 test/server.py",
     "lint": "eslint .",
-    "dist:all": "electron-builder --win portable nsis --x64 --publish never"
+    "dist:all": "electron-builder --win portable nsis --x64 --publish never",
+    "dist:linux": "electron-builder --linux AppImage deb --x64 --publish never"
   },
   "keywords": [
     "todo",
@@ -75,6 +76,42 @@
     "portable": {
       "artifactName": "Spunta-Portatile-${version}.exe",
       "unpackDirName": "Spunta"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.png",
+      "category": "Office",
+      "executableName": "spunta",
+      "maintainer": "Rapublic <Rapublic@users.noreply.github.com>",
+      "synopsis": "Attività di Nextcloud in stile Todoist",
+      "description": "App in stile Todoist per le attività di Nextcloud (CalDAV), compatibile con Tasks.org su Android.",
+      "desktop": {
+        "entry": {
+          "Name": "Spunta",
+          "Comment": "Attività di Nextcloud in stile Todoist",
+          "Keywords": "todo;attività;nextcloud;caldav;",
+          "StartupWMClass": "Spunta"
+        }
+      }
+    },
+    "appImage": {
+      "artifactName": "Spunta-${version}-x86_64.${ext}"
+    },
+    "deb": {
+      "artifactName": "spunta_${version}_amd64.${ext}"
     }
   },
   "repository": {

@@ -387,8 +387,45 @@ handle('testNotification', () => {
   return true;
 });
 
+// Linux has no login-item API: use an XDG autostart entry (~/.config/autostart).
+// For an AppImage the real file is in $APPIMAGE (execPath points inside the mount).
+function linuxAutostartPath() {
+  const base = process.env.XDG_CONFIG_HOME || path.join(app.getPath('home'), '.config');
+  return path.join(base, 'autostart', 'spunta.desktop');
+}
+function applyLinuxAutostart(enable) {
+  const file = linuxAutostartPath();
+  if (!enable) {
+    try { fs.unlinkSync(file); } catch { /* not there */ }
+    return;
+  }
+  const exe = process.env.APPIMAGE || process.execPath;
+  const quoted = /[\s"'\\$`]/.test(exe) ? `"${exe.replace(/(["\\$`])/g, '\\$1')}"` : exe;
+  const entry = [
+    '[Desktop Entry]',
+    'Type=Application',
+    'Name=Spunta',
+    'Comment=Attività di Nextcloud',
+    `Exec=${quoted} --nascosta`,
+    'Icon=spunta',
+    'Terminal=false',
+    'X-GNOME-Autostart-enabled=true',
+    '',
+  ].join('\n');
+  try {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, entry);
+  } catch (e) {
+    send('notice', 'Non riesco ad attivare l\'avvio automatico: ' + e.message);
+  }
+}
+
 function applyLoginItem() {
-  if (process.platform === 'linux') return;
+  if (process.platform === 'linux') {
+    // only touch the autostart file when the setting says so, or to remove our own entry
+    if (config.settings.startAtLogin || fs.existsSync(linuxAutostartPath())) applyLinuxAutostart(!!config.settings.startAtLogin);
+    return;
+  }
   const opts = { openAtLogin: !!config.settings.startAtLogin, args: ['--nascosta'] };
   if (PORTABLE_EXE) opts.path = PORTABLE_EXE; // not the temporary unpacked copy
   app.setLoginItemSettings(opts);
