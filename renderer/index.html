@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:">
+  <title>Spunta</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="titlebar">
+    <div class="brand">
+      <svg class="brand-tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.8c1.6 1.2 3.2 2.7 4.6 4.6C11.6 12.9 15 8.9 19.6 5.8"/></svg>
+      <span>Spunta</span>
+    </div>
+    <label class="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
+      <input id="search" type="search" placeholder="Cerca attività" autocomplete="off" spellcheck="false">
+    </label>
+  </header>
+
+  <div class="layout">
+    <nav class="sidebar" id="sidebar" aria-label="Viste e progetti"></nav>
+
+    <main class="main" id="main">
+      <div class="main-inner">
+        <div class="view-head" id="viewHead"></div>
+        <form class="quickadd" id="quickadd" autocomplete="off">
+          <span class="qa-plus" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+          <input id="qaInput" type="text" placeholder="Aggiungi un'attività, es. Chiamare Marco domani alle 10 #Lavoro p1" aria-label="Nuova attività" spellcheck="true">
+          <div class="qa-chips" id="qaChips" aria-live="polite"></div>
+        </form>
+        <div class="list" id="list"></div>
+      </div>
+    </main>
+
+    <aside class="detail" id="detail" aria-label="Dettagli attività" hidden></aside>
+  </div>
+
+  <div class="toast-wrap" id="toasts" aria-live="polite"></div>
+  <div class="modal-wrap" id="modal" hidden></div>
+  <div class="onboarding" id="onboarding" hidden></div>
+
+  <script src="quickadd.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

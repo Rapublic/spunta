@@ -1,0 +1,93 @@
+name: Test e compilazione
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Installa le dipendenze
+        run: |
+          npm ci
+          pip install radicale
+      - name: Controllo del codice
+        run: npm run lint
+      - name: Avvia il server CalDAV di prova
+        run: |
+          python test/server.py > server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -s -o /dev/null http://127.0.0.1:5232/ && break
+            sleep 1
+          done
+      - name: Test
+        env:
+          TZ: Europe/Rome
+        run: npm test
+
+  windows:
+    name: Compilazione Windows
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Installa le dipendenze
+        run: npm ci
+      - name: Crea portatile e installer
+        run: npm run dist:all
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Spunta-Windows
+          path: |
+            dist/*.exe
+          if-no-files-found: error
+
+  release:
+    name: Pubblica la Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Spunta-Windows
+          path: dist
+      - name: Note di rilascio dal CHANGELOG
+        run: |
+          ver="${GITHUB_REF_NAME#v}"
+          {
+            echo '> [!WARNING]'
+            echo '> **Al primo avvio Windows mostra "PC protetto"** perché Spunta non ha una firma digitale a pagamento. Clicca **Ulteriori informazioni**, poi **Esegui comunque**. I file sono creati direttamente da GitHub a partire dal codice pubblico.'
+            echo
+            echo '**Quale file scaricare:** `Spunta-Portatile` è un solo file da avviare senza installare nulla; `Spunta-Setup` installa l'"'"'app con icona nel menu Start.'
+            echo
+            echo '## Novità'
+            awk -v v="## $ver" '$0==v{f=1;next} /^## /{f=0} f' CHANGELOG.md
+          } > notes.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: Spunta ${{ github.ref_name }}
+          body_path: notes.md
+          files: dist/*.exe

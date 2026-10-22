@@ -1,0 +1,85 @@
+{
+  "name": "spunta",
+  "version": "1.0.3",
+  "description": "App Windows in stile Todoist per le attività di Nextcloud, compatibile con Tasks.org su Android. Nota: al primo avvio Windows mostra \"PC protetto\" perché l'app non ha firma digitale; clicca Ulteriori informazioni, poi Esegui comunque.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/quickadd.test.js && node test/caldav.test.js && node test/sync.test.js",
+    "dist": "electron-builder --win portable --x64 --publish never",
+    "dist:installer": "electron-builder --win nsis --x64 --publish never",
+    "test:server": "python3 test/server.py",
+    "lint": "eslint .",
+    "dist:all": "electron-builder --win portable nsis --x64 --publish never"
+  },
+  "keywords": [
+    "todo",
+    "attività",
+    "nextcloud",
+    "caldav",
+    "tasks.org",
+    "electron",
+    "windows"
+  ],
+  "author": "Rapublic",
+  "license": "MIT",
+  "dependencies": {
+    "fast-xml-parser": "^5.11.2"
+  },
+  "devDependencies": {
+    "electron": "^44.9.0",
+    "electron-builder": "^26.15.3",
+    "eslint": "^9.39.5",
+    "globals": "^17.13.0"
+  },
+  "productName": "Spunta",
+  "build": {
+    "appId": "it.spunta.attivita",
+    "productName": "Spunta",
+    "copyright": "© 2026 Rapublic",
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**",
+      "renderer/**",
+      "assets/**",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Spunta",
+      "language": "1040",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "artifactName": "Spunta-Setup-${version}.${ext}"
+    },
+    "publish": null,
+    "portable": {
+      "artifactName": "Spunta-Portatile-${version}.exe",
+      "unpackDirName": "Spunta"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Rapublic/spunta.git"
+  },
+  "homepage": "https://github.com/Rapublic/spunta"
+}
