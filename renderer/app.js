@@ -304,8 +304,23 @@
     const ro = list && list.readOnly;
     const k = dateKey(t);
     const tm = timeOf(t);
-    let rr = RRULES.map(([v, l]) => `<option value="${v}"${(t.rrule || '') === v ? ' selected' : ''}>${l}</option>`).join('');
-    if (t.rrule && !RRULES.some(([v]) => v === t.rrule)) rr += `<option value="${esc(t.rrule)}" selected>${esc(cap(Q.describeRRule(t.rrule)))}</option>`;
+    const rsp = Q.splitRRule(t.rrule);
+    let rr = RRULES.map(([v, l]) => `<option value="${v}"${rsp.base === v ? ' selected' : ''}>${l}</option>`).join('');
+    if (rsp.base && !RRULES.some(([v]) => v === rsp.base)) rr += `<option value="${esc(rsp.base)}" selected>${esc(cap(Q.describeRRule(rsp.base)))}</option>`;
+    const rEnd = rsp.until ? 'until' : rsp.count ? 'count' : 'never';
+    const rEndHtml = rsp.base ? `
+          <div class="row">
+            <label for="f-rend" class="hint">Termina</label>
+            <select class="input" id="f-rend" data-f="rend" ${ro ? 'disabled' : ''}>
+              <option value="never"${rEnd === 'never' ? ' selected' : ''}>Mai</option>
+              <option value="until"${rEnd === 'until' ? ' selected' : ''}>Il giorno…</option>
+              <option value="count"${rEnd === 'count' ? ' selected' : ''}>Dopo un numero di volte</option>
+            </select>
+            ${rEnd === 'until' ? `<input class="input" type="date" data-f="runtil" value="${esc(rsp.until)}" aria-label="Ultimo giorno della ripetizione" ${ro ? 'disabled' : ''}>` : ''}
+            ${rEnd === 'count' ? `<input class="input" type="number" min="1" max="999" data-f="rcount" value="${rsp.count}" aria-label="Numero di volte" style="width:84px" ${ro ? 'disabled' : ''}><span class="hint">${rsp.count === 1 ? 'volta' : 'volte'}</span>` : ''}
+          </div>
+          ${rsp.until && k && rsp.until < k ? '<p class="hint" style="color:var(--late)">La fine è prima della scadenza: dopo questa volta l\'attività non si ripete più.</p>' : ''}
+          ${rsp.count ? '<p class="hint">Il numero scende di uno a ogni completamento.</p>' : ''}` : '';
     const kids = (childrenOf.get(t.uid) || []).slice().sort(cmpList);
     const listOpts = S.lists.filter((l) => !l.readOnly || l.href === t.listHref)
       .map((l) => `<option value="${esc(l.href)}"${l.href === t.listHref ? ' selected' : ''}>${esc(l.name)}</option>`).join('');
@@ -338,7 +353,7 @@
         </div>
         <div class="field">
           <label for="f-rr">Ripetizione</label>
-          <select class="input" id="f-rr" data-f="rrule" ${ro ? 'disabled' : ''}>${rr}</select>
+          <select class="input" id="f-rr" data-f="rrule" ${ro ? 'disabled' : ''}>${rr}</select>${rEndHtml}
         </div>
         <div class="field">
           <span class="flabel">Priorità</span>
@@ -582,11 +597,39 @@
         else due = { allDay: true, date: dv };
       }
       timeIn.disabled = !dv;
-      patchSelected(due ? { due } : { due: null, rrule: null }).then(() => renderDetail(true));
+      const patch = due ? { due } : { due: null, rrule: null };
+      // keep the end date of a recurrence in the same form as the due date (date vs date-time)
+      if (due && t.rrule) {
+        const sp = Q.splitRRule(t.rrule);
+        if (sp.until) patch.rrule = Q.joinRRule(sp.base, { until: sp.until }, due);
+      }
+      patchSelected(patch).then(() => renderDetail(true));
     } else if (f === 'rrule') {
-      const patch = { rrule: e.target.value || null };
-      if (e.target.value && !t.due) patch.due = { allDay: true, date: todayKey() };
-      patchSelected(patch);
+      const sp = Q.splitRRule(t.rrule);
+      const due = t.due || (e.target.value ? { allDay: true, date: todayKey() } : null);
+      const patch = { rrule: e.target.value ? Q.joinRRule(e.target.value, sp, due) : null };
+      if (e.target.value && !t.due) patch.due = due;
+      patchSelected(patch).then(() => renderDetail(true));
+    } else if (f === 'rend' || f === 'runtil' || f === 'rcount') {
+      const sp = Q.splitRRule(t.rrule);
+      if (!sp.base) return;
+      let end = {};
+      if (f === 'rend') {
+        if (e.target.value === 'until') {
+          // proposal: three months after the due date (or today)
+          const d = t.due ? keyToDate(dateKey(t)) : new Date();
+          d.setMonth(d.getMonth() + 3);
+          end = { until: ymd(d) };
+        } else if (e.target.value === 'count') end = { count: 10 };
+      } else if (f === 'runtil') {
+        if (!e.target.value) return;
+        end = { until: e.target.value };
+      } else {
+        const n = parseInt(e.target.value, 10);
+        if (!(n >= 1)) { e.target.value = sp.count || 1; return; }
+        end = { count: Math.min(n, 999) };
+      }
+      patchSelected({ rrule: Q.joinRRule(sp.base, end, t.due) }).then(() => renderDetail(true));
     } else if (f === 'list') {
       run(() => api.moveTask(t.href, e.target.value));
     } else if (f === 'tags') {
@@ -768,7 +811,7 @@
         <div class="row"><label for="st-allday" class="hint">Ora dei promemoria su attività senza orario (quelli impostati dal telefono)</label><input class="input" type="time" id="st-allday" value="${esc(s.notifyAllDayAt)}"></div>
         <hr>
         <div class="field">
-          <span class="flabel">Notifiche di Windows</span>
+          <span class="flabel">${S.env && S.env.platform === 'linux' ? 'Notifiche' : 'Notifiche di Windows'}</span>
           ${S.env && S.env.portable && !S.env.notifyShortcut
             ? `<p class="hint">Questa è la versione portatile: per mostrare le notifiche, Windows vuole un collegamento a Spunta nel menu Start. Lo creo solo se premi il pulsante, e puoi toglierlo quando vuoi.</p>
                <div class="row"><button type="button" class="btn primary" data-x="mkshort">Attiva le notifiche</button></div>`

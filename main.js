@@ -99,6 +99,7 @@ function shortcutPath() {
 function envInfo() {
   return {
     portable: !!PORTABLE_EXE,
+    platform: process.platform,
     notifyShortcut: PORTABLE_EXE ? fs.existsSync(shortcutPath()) : true,
     version: app.getVersion(),
   };

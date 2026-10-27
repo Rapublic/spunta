@@ -1,5 +1,10 @@
 # Novità
 
+## 1.0.5
+- Ripetizioni con una fine: nei dettagli dell'attività, sotto Ripetizione, la nuova scelta **Termina** (mai, il giorno…, dopo un numero di volte). Funziona anche nell'inserimento rapido: "ogni lunedì fino al 30/11", "per 10 volte".
+- Una ripetizione con orario scritta di sera ("ogni giorno alle 8") parte dal giorno dopo, invece che da un orario già passato.
+- Su Linux la voce delle Impostazioni si chiama "Notifiche" (non più "Notifiche di Windows").
+
 ## 1.0.4
 - Versione per Linux: AppImage (quasi tutte le distribuzioni) e pacchetto .deb (Ubuntu, Mint, Debian).
 - Su Linux l'avvio automatico usa il sistema standard delle sessioni desktop.

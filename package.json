@@ -1,6 +1,6 @@
 {
   "name": "spunta",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "App Windows in stile Todoist per le attività di Nextcloud, compatibile con Tasks.org su Android. Nota: al primo avvio Windows mostra \"PC protetto\" perché l'app non ha firma digitale; clicca Ulteriori informazioni, poi Esegui comunque.",
   "main": "main.js",
   "scripts": {

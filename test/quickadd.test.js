@@ -33,6 +33,12 @@ const cases = [
   ['Chiamare alle 3 domani', (r) => assert.strictEqual(r.due.ts, at(2026, 10, 20, 15, 0))],
   ['Mercato la prossima settimana', (r) => assert.strictEqual(r.due.date, '2026-10-26')],
   ['Lettera domani pomeriggio', (r) => assert.strictEqual(r.due.ts, at(2026, 10, 20, 15, 0))],
+  ['Report ogni lunedì fino al 30/11', (r) => { assert.strictEqual(r.rrule, 'FREQ=WEEKLY;BYDAY=MO;UNTIL=20261130'); assert.strictEqual(r.due.date, '2026-10-19'); assert.strictEqual(r.title, 'Report'); }],
+  ['Terapia ogni giorno alle 8 fino al 15 dicembre', (r) => { assert.strictEqual(r.due.ts, at(2026, 10, 20, 8, 0)); assert.match(r.rrule, /^FREQ=DAILY;UNTIL=20261215T\d{6}Z$/); assert.strictEqual(r.title, 'Terapia'); }],
+  ['Corso ogni martedì per 10 volte', (r) => { assert.strictEqual(r.rrule, 'FREQ=WEEKLY;BYDAY=TU;COUNT=10'); assert.strictEqual(r.title, 'Corso'); }],
+  ['Rata ogni mese fino al 31/03/2027', (r) => assert.strictEqual(r.rrule, 'FREQ=MONTHLY;UNTIL=20270331')],
+  ['Promemoria ogni settimana fino a fine anno', (r) => assert.strictEqual(r.rrule, 'FREQ=WEEKLY;UNTIL=20261231')],
+  ['Leggere fino al 30/11', (r) => { assert.strictEqual(r.rrule, null); assert.strictEqual(r.due.date, '2026-11-30'); }],
 ];
 
 let ok = 0;
@@ -45,4 +51,15 @@ const r = Q.parse('Leggere Domani è un altro giorno', lists, { now, ignore: new
 assert.strictEqual(r.due, null); assert.strictEqual(r.title, 'Leggere Domani è un altro giorno');
 console.log(`${ok}/${cases.length} quick-add cases ok`);
 console.log(Q.formatDue({ allDay: false, ts: at(2026, 10, 20, 10, 0) }, now), '|', Q.formatDue({ allDay: true, date: '2026-12-01' }, now));
+// split / join / describe
+const sp = Q.splitRRule('FREQ=WEEKLY;BYDAY=MO;UNTIL=20261130');
+assert.deepStrictEqual(sp, { base: 'FREQ=WEEKLY;BYDAY=MO', until: '2026-11-30', count: null });
+assert.deepStrictEqual(Q.splitRRule('FREQ=DAILY;COUNT=5'), { base: 'FREQ=DAILY', until: null, count: 5 });
+assert.strictEqual(Q.joinRRule('FREQ=DAILY', { until: '2026-11-30' }, { allDay: true, date: '2026-10-27' }), 'FREQ=DAILY;UNTIL=20261130');
+assert.strictEqual(Q.joinRRule('FREQ=DAILY', {}, null), 'FREQ=DAILY');
+assert.strictEqual(Q.joinRRule('', { count: 3 }, null), null);
+assert.strictEqual(Q.splitRRule(Q.joinRRule('FREQ=DAILY', { until: '2026-11-30' }, { allDay: false, ts: at(2026, 10, 27, 9, 0) })).until, '2026-11-30');
+assert.strictEqual(Q.describeRRule('FREQ=WEEKLY;BYDAY=MO;UNTIL=20261130'), 'ogni lunedì fino al 30 nov');
+assert.strictEqual(Q.describeRRule('FREQ=WEEKLY;BYDAY=TU;COUNT=10'), 'ogni martedì per 10 volte');
+console.log('split/join/describe ok');
 if (ok !== cases.length) process.exit(1);

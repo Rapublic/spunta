@@ -30,6 +30,17 @@
   function num(w) { w = w.toLowerCase(); return /^\d+$/.test(w) ? parseInt(w, 10) : NUM_WORDS[w]; }
   const pad = (n) => String(n).padStart(2, '0');
   const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  function sameDay(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+  // next day after `from` on which a simple rule (daily / listed weekdays) falls; other rules: next day
+  function nextRecurDay(rr, from) {
+    const m = /BYDAY=([A-Z,]+)/.exec(rr);
+    const days = m ? m[1].split(',').map((c) => WD_CODES.indexOf(c)).filter((i) => i >= 0) : null;
+    let d = addDays(startOfDay(from), 1);
+    if (/FREQ=(DAILY|WEEKLY)/.test(rr) && days && days.length) {
+      for (let i = 0; i < 7 && !days.includes(d.getDay()); i++) d = addDays(d, 1);
+    }
+    return d;
+  }
   function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
   function startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
   function nextWeekday(from, wd, allowToday) {
@@ -42,7 +53,63 @@
   const MONTH_NAMES = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
   const DAY_NAMES = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'];
 
+  // ---- end of a recurrence (RRULE UNTIL / COUNT) ----
+  // splitRRule('FREQ=WEEKLY;BYDAY=MO;UNTIL=20261130') -> { base:'FREQ=WEEKLY;BYDAY=MO', until:'2026-11-30', count:null }
+  function splitRRule(rr) {
+    const out = { base: '', until: null, count: null };
+    if (!rr) return out;
+    const keep = [];
+    for (const part of rr.split(';')) {
+      const [k, v] = part.split('=');
+      if (!k) continue;
+      const K = k.toUpperCase();
+      if (K === 'UNTIL') {
+        const m = /^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})(Z)?)?$/.exec((v || '').trim());
+        if (m) {
+          if (m[4] !== undefined && m[7]) {
+            const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]));
+            out.until = ymd(d);
+          } else out.until = `${m[1]}-${m[2]}-${m[3]}`;
+        }
+      } else if (K === 'COUNT') {
+        const n = parseInt(v, 10);
+        if (n > 0) out.count = n;
+      } else keep.push(`${K}=${v}`);
+    }
+    out.base = keep.join(';');
+    return out;
+  }
+  // joinRRule(base, { until:'YYYY-MM-DD' } | { count:n } | {}, due) -> full RRULE string
+  // UNTIL takes the value type of the due date (RFC 5545): a date for all-day tasks,
+  // the end of that day in UTC for tasks with a time.
+  function joinRRule(base, end, due) {
+    if (!base) return null;
+    end = end || {};
+    if (end.until) {
+      const [y, m, d] = end.until.split('-').map(Number);
+      let v;
+      if (due && !due.allDay) {
+        const t = new Date(y, m - 1, d, 23, 59, 59);
+        v = `${t.getUTCFullYear()}${pad(t.getUTCMonth() + 1)}${pad(t.getUTCDate())}T${pad(t.getUTCHours())}${pad(t.getUTCMinutes())}${pad(t.getUTCSeconds())}Z`;
+      } else v = `${y}${pad(m)}${pad(d)}`;
+      return `${base};UNTIL=${v}`;
+    }
+    if (end.count) return `${base};COUNT=${Math.max(1, Math.round(end.count))}`;
+    return base;
+  }
+
   function describeRRule(rr) {
+    if (!rr) return '';
+    const sp = splitRRule(rr);
+    let end = '';
+    if (sp.until) {
+      const [y, m, d] = sp.until.split('-').map(Number);
+      end = ` fino al ${d} ${MONTH_NAMES[m - 1].slice(0, 3)}${y !== new Date().getFullYear() ? ' ' + y : ''}`;
+    } else if (sp.count) end = sp.count === 1 ? ' per 1 volta' : ` per ${sp.count} volte`;
+    return describeBase(sp.base) + end;
+  }
+
+  function describeBase(rr) {
     if (!rr) return '';
     const p = {};
     rr.split(';').forEach((kv) => { const [k, v] = kv.split('='); p[k] = v; });
@@ -141,6 +208,41 @@
       chips.push({ kind: 'recur', raw: m, label: describeRRule(res.rrule) });
       recurStart = startOfDay(now);
     });
+
+    // end of the recurrence: "fino al 30/11", "fino al 15 dicembre 2026", "per 10 volte"
+    let recurEnd = null;
+    if (res.rrule) {
+      take(new RegExp(`${B0}fino\\s+(?:al|all'|a|il)?\\s*(\\d{1,2})[/.-](\\d{1,2})(?:[/.-](\\d{2,4}))?${B1}`, 'iu'), (m, d, mo, y) => {
+        const dd = +d, mm = +mo;
+        if (dd < 1 || dd > 31 || mm < 1 || mm > 12) return false;
+        const yy = y ? (+y < 100 ? 2000 + +y : +y) : now.getFullYear();
+        let date = new Date(yy, mm - 1, dd);
+        if (!y && date < startOfDay(now)) date = new Date(yy + 1, mm - 1, dd);
+        recurEnd = { until: ymd(date), raw: m };
+      });
+      if (!recurEnd) {
+        take(new RegExp(`${B0}fino\\s+(?:al|all'|a|il)?\\s*(\\d{1,2})\\s+(${MON_ALT})${B1}(?:\\s+(\\d{4})${B1})?`, 'iu'), (m, d, mon, y) => {
+          const mi = monIndex(mon);
+          if (mi < 0 || +d < 1 || +d > 31) return false;
+          let date = new Date(y ? +y : now.getFullYear(), mi, +d);
+          if (!y && date < startOfDay(now)) date = new Date(now.getFullYear() + 1, mi, +d);
+          recurEnd = { until: ymd(date), raw: m };
+        });
+      }
+      if (!recurEnd) {
+        take(new RegExp(`${B0}fino\\s+a\\s+fine\\s+(mese|anno)${B1}`, 'iu'), (m, what) => {
+          const date = what.toLowerCase() === 'mese' ? new Date(now.getFullYear(), now.getMonth() + 1, 0) : new Date(now.getFullYear(), 11, 31);
+          recurEnd = { until: ymd(date), raw: m };
+        });
+      }
+      if (!recurEnd) {
+        take(new RegExp(`${B0}per\\s+(${NUM_ALT})\\s+volt[ae]${B1}`, 'iu'), (m, n) => {
+          const k = num(n);
+          if (!k) return false;
+          recurEnd = { count: k, raw: m };
+        });
+      }
+    }
 
     // relative: tra/fra N minuti|ore|giorni|settimane|mesi
     take(new RegExp(`${B0}(?:tra|fra)\\s+(${NUM_ALT})\\s*(minut[oi]|or[ae]|giorn[oi]|settiman[ae]|mes[ei]|ann[oi])${B1}`, 'iu'), (m, n, unit) => {
@@ -249,7 +351,14 @@
       });
     }
 
-    if (!res.date && recurStart) res.date = recurStart;
+    if (!res.date && recurStart) {
+      res.date = recurStart;
+      // "ogni giorno alle 8" written in the evening: the first one is tomorrow, not this morning
+      if (res.time && res.rrule && sameDay(recurStart, now)) {
+        const first = new Date(recurStart); first.setHours(res.time[0], res.time[1], 0, 0);
+        if (first <= now) res.date = nextRecurDay(res.rrule, recurStart);
+      }
+    }
     if (res.time && !res.date) {
       const t = new Date(now); t.setHours(res.time[0], res.time[1], 0, 0);
       res.date = t <= now ? addDays(startOfDay(now), 1) : startOfDay(now);
@@ -261,6 +370,11 @@
         const d = new Date(res.date); d.setHours(res.time[0], res.time[1], 0, 0);
         due = { allDay: false, ts: d.getTime() };
       } else due = { allDay: true, date: ymd(res.date) };
+    }
+    if (res.rrule && recurEnd) {
+      res.rrule = joinRRule(res.rrule, recurEnd, due);
+      const rc = chips.find((c) => c.kind === 'recur');
+      if (rc) { rc.raws = [rc.raw.trim(), recurEnd.raw.trim()]; rc.raw = rc.raws.join(' '); rc.label = describeRRule(res.rrule); }
     }
     // merge date+time chips into a single readable chip
     const dateRaws = chips.filter((c) => c.kind === 'date' || c.kind === 'time').map((c) => c.raw.trim());
@@ -292,7 +406,7 @@
   }
   function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
-  const api = { parse, formatDue, describeRRule, DAY_NAMES, MONTH_NAMES };
+  const api = { parse, formatDue, describeRRule, splitRRule, joinRRule, DAY_NAMES, MONTH_NAMES };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.QuickAdd = api;
 })(typeof window !== 'undefined' ? window : globalThis);

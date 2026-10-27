@@ -14,7 +14,7 @@ Gratuita, senza abbonamenti, senza limiti. I dati restano sul tuo server.
 - **Inserimento rapido in italiano.** Scrivi `Chiamare Marco venerdì alle 11 #Lavoro p1 @telefono` e Spunta capisce data, ora, progetto, priorità ed etichetta.
 - **Viste Oggi e Prossimi 7 giorni**, con le attività in ritardo in evidenza.
 - **Progetti, priorità, sottoattività, note, etichette.**
-- **Attività ricorrenti**: "ogni lunedì", "ogni giorno lavorativo", "ogni 2 settimane"…
+- **Attività ricorrenti**: "ogni lunedì", "ogni giorno lavorativo", "ogni 2 settimane"…, anche con una fine ("fino al 30/11", "per 10 volte").
 - **Attività senza data**, per le cose da fare "prima o poi".
 - **Notifiche del sistema** all'ora di scadenza e riepilogo del mattino.
 - **Funziona anche offline**: le modifiche partono quando torna la connessione.
@@ -77,6 +77,7 @@ Le versioni del Play Store chiedono un pagamento per la sincronizzazione.
 | `p1`, `p2`, `p3` | priorità alta, media, bassa |
 | `@telefono` | un'etichetta |
 | `ogni lunedì`, `ogni martedì e giovedì`, `ogni giorno lavorativo`, `ogni 2 settimane`, `ogni mese` | la ripetizione |
+| dopo una ripetizione: `fino al 30/11`, `fino al 15 dicembre`, `fino a fine anno`, `per 10 volte` | quando smette di ripetersi |
 
 Mentre scrivi, Spunta mostra sotto la casella cosa ha capito. Se una parola va lasciata nel titolo (per esempio "Leggere *Domani* è un altro giorno"), clicca la sua etichetta.
 
